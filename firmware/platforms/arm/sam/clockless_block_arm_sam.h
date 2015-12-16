@@ -38,6 +38,7 @@ class InlineBlockClocklessController : public CLEDController {
 	data_ptr_t mPort;
 	CMinWait<WAIT_TIME> mWait;
 public:
+	virtual int size() { return m_nLeds * LANES; }
 	virtual void init() {
     if(FIRST_PIN == PORTA_FIRST_PIN) {
       switch(LANES) {
@@ -76,6 +77,8 @@ public:
     mPinMask = FastPin<FIRST_PIN>::mask();
     mPort = FastPin<FIRST_PIN>::port();
 	}
+
+	virtual uint16_t getMaxRefreshRate() const { return 400; }
 
 	virtual void clearLeds(int nLeds) {
 		showColor(CRGB(0, 0, 0), nLeds, 0);

@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include <math.h>
-
 #include "FastLED.h"
 
 FASTLED_NAMESPACE_BEGIN
@@ -236,7 +234,7 @@ CRGB& nblend( CRGB& existing, const CRGB& overlay, fract8 amountOfOverlay )
         return existing;
     }
 
-    fract8 amountOfKeep = 256 - amountOfOverlay;
+    fract8 amountOfKeep = 255 - amountOfOverlay;
 
     existing.red   = scale8_LEAVING_R1_DIRTY( existing.red,   amountOfKeep)
                     + scale8_LEAVING_R1_DIRTY( overlay.red,    amountOfOverlay);
@@ -289,7 +287,7 @@ CHSV& nblend( CHSV& existing, const CHSV& overlay, fract8 amountOfOverlay, TGrad
         return existing;
     }
 
-    fract8 amountOfKeep = 256 - amountOfOverlay;
+    fract8 amountOfKeep = 255 - amountOfOverlay;
 
     uint8_t huedelta8 = overlay.hue - existing.hue;
 
@@ -500,7 +498,7 @@ CRGB ColorFromPalette( const CRGBPalette16& pal, uint8_t index, uint8_t brightne
         }
 
         uint8_t f2 = lo4 << 4;
-        uint8_t f1 = 256 - f2;
+        uint8_t f1 = 255 - f2;
 
         //    rgb1.nscale8(f1);
         red1   = scale8_LEAVING_R1_DIRTY( red1,   f1);
@@ -540,7 +538,7 @@ CRGB ColorFromPalette( const TProgmemRGBPalette16& pal, uint8_t index, uint8_t b
     uint8_t lo4 = index & 0x0F;
 
     //  CRGB rgb1 = pal[ hi4];
-    CRGB entry   =  pgm_read_dword_near( &(pal[0]) + hi4 );
+    CRGB entry   =  FL_PGM_READ_DWORD_NEAR( &(pal[0]) + hi4 );
 
     uint8_t red1   = entry.red;
     uint8_t green1 = entry.green;
@@ -551,13 +549,13 @@ CRGB ColorFromPalette( const TProgmemRGBPalette16& pal, uint8_t index, uint8_t b
     if( blend ) {
 
         if( hi4 == 15 ) {
-            entry = pgm_read_dword_near( &(pal[0]) );
+            entry =   FL_PGM_READ_DWORD_NEAR( &(pal[0]) );
         } else {
-            entry = pgm_read_dword_near( &(pal[1]) + hi4 );
+            entry =   FL_PGM_READ_DWORD_NEAR( &(pal[1]) + hi4 );
         }
 
         uint8_t f2 = lo4 << 4;
-        uint8_t f1 = 256 - f2;
+        uint8_t f1 = 255 - f2;
 
         //    rgb1.nscale8(f1);
         red1   = scale8_LEAVING_R1_DIRTY( red1,   f1);
@@ -632,7 +630,7 @@ CHSV ColorFromPalette( const struct CHSVPalette16& pal, uint8_t index, uint8_t b
         }
 
         uint8_t f2 = lo4 << 4;
-        uint8_t f1 = 256 - f2;
+        uint8_t f1 = 255 - f2;
 
         uint8_t hue2  = entry->hue;
         uint8_t sat2  = entry->sat;
@@ -675,7 +673,7 @@ CHSV ColorFromPalette( const struct CHSVPalette16& pal, uint8_t index, uint8_t b
         uint8_t deltaHue = (uint8_t)(hue2 - hue1);
         if( deltaHue & 0x80 ) {
           // go backwards
-          hue1 -= scale8( 256 - deltaHue, f2);
+          hue1 -= scale8( 255 - deltaHue, f2);
         } else {
           // go forwards
           hue1 += scale8( deltaHue, f2);
@@ -694,7 +692,7 @@ CHSV ColorFromPalette( const struct CHSVPalette16& pal, uint8_t index, uint8_t b
 
 CHSV ColorFromPalette( const struct CHSVPalette256& pal, uint8_t index, uint8_t brightness, TBlendType)
 {
-    CHSV hsv;// = *( &(pal[0]) + index );
+    CHSV hsv = *( &(pal[0]) + index );
 
     if( brightness != 255) {
         hsv.value = scale8_video( hsv.value, brightness);

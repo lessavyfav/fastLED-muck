@@ -1,30 +1,36 @@
 #ifndef __INC_COLORUTILS_H
 #define __INC_COLORUTILS_H
 
-#ifdef ARDUINO
-#include <avr/pgmspace.h>
-#endif
+///@file colorutils.h
+/// functions for color fill, paletters, blending, and more
 
 #include "pixeltypes.h"
+#include "fastled_progmem.h"
 
 FASTLED_NAMESPACE_BEGIN
+///@defgroup Colorutils Color utility functions
+///A variety of functions for working with color, palletes, and leds
+///@{
 
-// fill_solid -   fill a range of LEDs with a solid color
-//                Example: fill_solid( leds, NUM_LEDS, CRGB(50,0,200));
-
+/// fill_solid -   fill a range of LEDs with a solid color
+///                Example: fill_solid( leds, NUM_LEDS, CRGB(50,0,200));
 void fill_solid( struct CRGB * leds, int numToFill,
                  const struct CRGB& color);
 
+/// fill_solid -   fill a range of LEDs with a solid color
+///                Example: fill_solid( leds, NUM_LEDS, CRGB(50,0,200));
 void fill_solid( struct CHSV* targetArray, int numToFill,
 				 const struct CHSV& hsvColor);
 
 
-// fill_rainbow - fill a range of LEDs with a rainbow of colors, at
-//                full saturation and full value (brightness)
+/// fill_rainbow - fill a range of LEDs with a rainbow of colors, at
+///                full saturation and full value (brightness)
 void fill_rainbow( struct CRGB * pFirstLED, int numToFill,
                    uint8_t initialhue,
                    uint8_t deltahue = 5);
 
+/// fill_rainbow - fill a range of LEDs with a rainbow of colors, at
+///                full saturation and full value (brightness)
 void fill_rainbow( struct CHSV * targetArray, int numToFill,
                    uint8_t initialhue,
                    uint8_t deltahue = 5);
@@ -410,7 +416,6 @@ typedef uint8_t TDynamicRGBGradientPalette_byte ;
 typedef const TDynamicRGBGradientPalette_byte *TDynamicRGBGradientPalette_bytes;
 typedef TDynamicRGBGradientPalette_bytes TDynamicRGBGradientPalettePtr;
 
-
 // Convert a 16-entry palette to a 256-entry palette
 void UpscalePalette(const struct CRGBPalette16& srcpal16, struct CRGBPalette256& destpal256);
 void UpscalePalette(const struct CHSVPalette16& srcpal16, struct CHSVPalette256& destpal256);
@@ -444,7 +449,7 @@ public:
     CHSVPalette16( const TProgmemHSVPalette16& rhs)
     {
         for( uint8_t i = 0; i < 16; i++) {
-            CRGB xyz   =  pgm_read_dword_near( rhs + i);
+            CRGB xyz   =  FL_PGM_READ_DWORD_NEAR( rhs + i);
             entries[i].hue = xyz.red;
             entries[i].sat = xyz.green;
             entries[i].val = xyz.blue;
@@ -453,7 +458,7 @@ public:
     CHSVPalette16& operator=( const TProgmemHSVPalette16& rhs)
     {
         for( uint8_t i = 0; i < 16; i++) {
-            CRGB xyz   =  pgm_read_dword_near( rhs + i);
+            CRGB xyz   =  FL_PGM_READ_DWORD_NEAR( rhs + i);
             entries[i].hue = xyz.red;
             entries[i].sat = xyz.green;
             entries[i].val = xyz.blue;
@@ -484,6 +489,23 @@ public:
         return &(entries[0]);
     }
 
+    bool operator==( const CHSVPalette16 rhs)
+    {
+        const uint8_t* p = (const uint8_t*)(&(this->entries[0]));
+        const uint8_t* q = (const uint8_t*)(&(rhs.entries[0]));
+        if( p == q) return true;
+        for( uint8_t i = 0; i < (sizeof( entries)); i++) {
+            if( *p != *q) return false;
+            p++;
+            q++;
+        }
+        return true;
+    }
+    bool operator!=( const CHSVPalette16 rhs)
+    {
+        return !( *this == rhs);
+    }
+    
     CHSVPalette16( const CHSV& c1)
     {
         fill_solid( &(entries[0]), 16, c1);
@@ -572,6 +594,23 @@ public:
         return &(entries[0]);
     }
 
+    bool operator==( const CHSVPalette256 rhs)
+    {
+        const uint8_t* p = (const uint8_t*)(&(this->entries[0]));
+        const uint8_t* q = (const uint8_t*)(&(rhs.entries[0]));
+        if( p == q) return true;
+        for( uint16_t i = 0; i < (sizeof( entries)); i++) {
+            if( *p != *q) return false;
+            p++;
+            q++;
+        }
+        return true;
+    }
+    bool operator!=( const CHSVPalette256 rhs)
+    {
+        return !( *this == rhs);
+    }
+    
     CHSVPalette256( const CHSV& c1)
     {
       fill_solid( &(entries[0]), 256, c1);
@@ -632,17 +671,34 @@ public:
     CRGBPalette16( const TProgmemRGBPalette16& rhs)
     {
         for( uint8_t i = 0; i < 16; i++) {
-            entries[i] =  pgm_read_dword_near( rhs + i);
+            entries[i] =  FL_PGM_READ_DWORD_NEAR( rhs + i);
         }
     }
     CRGBPalette16& operator=( const TProgmemRGBPalette16& rhs)
     {
         for( uint8_t i = 0; i < 16; i++) {
-            entries[i] =  pgm_read_dword_near( rhs + i);
+            entries[i] =  FL_PGM_READ_DWORD_NEAR( rhs + i);
         }
         return *this;
     }
 
+    bool operator==( const CRGBPalette16 rhs)
+    {
+        const uint8_t* p = (const uint8_t*)(&(this->entries[0]));
+        const uint8_t* q = (const uint8_t*)(&(rhs.entries[0]));
+        if( p == q) return true;
+        for( uint8_t i = 0; i < (sizeof( entries)); i++) {
+            if( *p != *q) return false;
+            p++;
+            q++;
+        }
+        return true;
+    }
+    bool operator!=( const CRGBPalette16 rhs)
+    {
+        return !( *this == rhs);
+    }
+    
     inline CRGB& operator[] (uint8_t x) __attribute__((always_inline))
     {
         return entries[x];
@@ -735,13 +791,13 @@ public:
         // Count entries
         uint8_t count = 0;
         do {
-            u.dword = pgm_read_dword_near(progent + count);
+            u.dword = FL_PGM_READ_DWORD_NEAR(progent + count);
             count++;;
         } while ( u.index != 255);
 
         int8_t lastSlotUsed = -1;
 
-        u.dword = pgm_read_dword_near( progent);
+        u.dword = FL_PGM_READ_DWORD_NEAR( progent);
         CRGB rgbstart( u.r, u.g, u.b);
 
         int indexstart = 0;
@@ -749,7 +805,7 @@ public:
         uint8_t iend8 = 0;
         while( indexstart < 255) {
             progent++;
-            u.dword = pgm_read_dword_near( progent);
+            u.dword = FL_PGM_READ_DWORD_NEAR( progent);
             int indexend  = u.index;
             CRGB rgbend( u.r, u.g, u.b);
             istart8 = indexstart / 16;
@@ -875,6 +931,23 @@ public:
         return *this;
     }
 
+    bool operator==( const CRGBPalette256 rhs)
+    {
+        const uint8_t* p = (const uint8_t*)(&(this->entries[0]));
+        const uint8_t* q = (const uint8_t*)(&(rhs.entries[0]));
+        if( p == q) return true;
+        for( uint16_t i = 0; i < (sizeof( entries)); i++) {
+            if( *p != *q) return false;
+            p++;
+            q++;
+        }
+        return true;
+    }
+    bool operator!=( const CRGBPalette256 rhs)
+    {
+        return !( *this == rhs);
+    }
+    
     inline CRGB& operator[] (uint8_t x) __attribute__((always_inline))
     {
         return entries[x];
@@ -940,13 +1013,13 @@ public:
     {
         TRGBGradientPaletteEntryUnion* progent = (TRGBGradientPaletteEntryUnion*)(progpal);
         TRGBGradientPaletteEntryUnion u;
-        u.dword = pgm_read_dword_near( progent);
+        u.dword = FL_PGM_READ_DWORD_NEAR( progent);
         CRGB rgbstart( u.r, u.g, u.b);
 
         int indexstart = 0;
         while( indexstart < 255) {
             progent++;
-            u.dword = pgm_read_dword_near( progent);
+            u.dword = FL_PGM_READ_DWORD_NEAR( progent);
             int indexend  = u.index;
             CRGB rgbend( u.r, u.g, u.b);
             fill_gradient_RGB( &(entries[0]), indexstart, rgbstart, indexend, rgbend);
@@ -1124,10 +1197,10 @@ void nblendPaletteTowardPalette( CRGBPalette16& currentPalette,
 //
 
 #define DEFINE_GRADIENT_PALETTE(X) \
-  extern const TProgmemRGBGradientPalette_byte X[] PROGMEM =
+  extern const TProgmemRGBGradientPalette_byte X[] FL_PROGMEM =
 
 #define DECLARE_GRADIENT_PALETTE(X) \
-  extern const TProgmemRGBGradientPalette_byte X[] PROGMEM
+  extern const TProgmemRGBGradientPalette_byte X[] FL_PROGMEM
 
 
 // Functions to apply gamma adjustments, either:
@@ -1156,4 +1229,5 @@ void   napplyGamma_video( CRGB* rgbarray, uint16_t count, float gammaR, float ga
 
 FASTLED_NAMESPACE_END
 
+///@}
 #endif

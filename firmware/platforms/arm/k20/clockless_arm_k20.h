@@ -24,6 +24,8 @@ public:
 		mPort = FastPin<DATA_PIN>::port();
 	}
 
+	virtual uint16_t getMaxRefreshRate() const { return 400; }
+
 	virtual void clearLeds(int nLeds) {
 		showColor(CRGB(0, 0, 0), nLeds, 0);
 	}
@@ -101,9 +103,7 @@ protected:
 		pixels.preStepFirstByteDithering();
 		register uint8_t b = pixels.loadAndScale0();
 
-		#if (FASTLED_ALLOW_INTERRUPTS == 1)
 		cli();
-		#endif
 		uint32_t next_mark = ARM_DWT_CYCCNT + (T1+T2+T3);
 
 		while(pixels.has(1)) {
@@ -134,6 +134,7 @@ protected:
 			#endif
 		};
 
+		sei();
 		return ARM_DWT_CYCCNT;
 	}
 };

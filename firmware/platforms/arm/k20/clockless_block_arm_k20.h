@@ -28,6 +28,8 @@ class InlineBlockClocklessController : public CLEDController {
 	data_ptr_t mPort;
 	CMinWait<WAIT_TIME> mWait;
 public:
+	virtual int size() { return m_nLeds * __LANES; }
+
 	virtual void init() {
 		if(FIRST_PIN == PORTC_FIRST_PIN) { // PORTC
 			switch(LANES) {
@@ -59,6 +61,8 @@ public:
 		mPinMask = FastPin<FIRST_PIN>::mask();
 		mPort = FastPin<FIRST_PIN>::port();
 	}
+
+	virtual uint16_t getMaxRefreshRate() const { return 400; }
 
 	virtual void clearLeds(int nLeds) {
 		showColor(CRGB(0, 0, 0), nLeds, 0);
@@ -359,7 +363,7 @@ public:
 
 		while(nLeds--) {
 			allpixels.stepDithering();
-			#if (FASTLED_ALLOW_INTERRUPTS == 1)
+			#if 0 && (FASTLED_ALLOW_INTERRUPTS == 1)
 			cli();
 			// if interrupts took longer than 45µs, punt on the current frame
 			if(ARM_DWT_CYCCNT > next_mark) {
@@ -377,7 +381,7 @@ public:
 			// Write third byte
 			writeBits<8+XTRA0,0>(next_mark, b0, allpixels);
 
-			#if (FASTLED_ALLOW_INTERRUPTS == 1)
+			#if 0 && (FASTLED_ALLOW_INTERRUPTS == 1)
 			sei();
 			#endif
 		};
