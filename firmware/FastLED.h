@@ -1,15 +1,15 @@
 #ifndef __INC_FASTSPI_LED2_H
 #define __INC_FASTSPI_LED2_H
 
-// #define NO_CORRECTION 1
-// #define NO_DITHERING 1
+///@file FastLED.h
+/// central include file for FastLED, defines the CFastLED class/object
 
 #define xstr(s) str(s)
 #define str(s) #s
 
-#define  FASTLED_VERSION 3001000
+#define  FASTLED_VERSION 3001001
 #ifndef FASTLED_INTERNAL
-#warning FastLED version 3001000  (Not really a warning, just telling you here.)
+#warning FastLED version 3.001.001  (Not really a warning, just telling you here.)
 #endif
 
 #ifndef __PROG_TYPES_COMPAT__
@@ -30,6 +30,8 @@
 
 #include <stdint.h>
 
+#include "cpp_compat.h"
+
 #include "fastled_config.h"
 #include "led_sysdefs.h"
 
@@ -40,10 +42,13 @@
 #include "./dmx.h"
 
 #include "platforms.h"
+#include "fastled_progmem.h"
 
 #include "lib8tion.h"
+#include "pixeltypes.h"
 #include "hsv2rgb.h"
 #include "colorutils.h"
+#include "pixelset.h"
 #include "colorpalettes.h"
 
 #include "noise.h"
@@ -54,6 +59,7 @@
 
 FASTLED_NAMESPACE_BEGIN
 
+/// definitions for the spi chipset constants
 enum ESPIChipsets {
 	LPD8806,
 	WS2801,
@@ -65,19 +71,27 @@ enum ESPIChipsets {
 };
 
 enum ESM { SMART_MATRIX };
-enum OWS2811 { OCTOWS2811 };
+enum OWS2811 { OCTOWS2811,OCTOWS2811_400 };
+
+#ifdef HAS_PIXIE
+template<uint8_t DATA_PIN, EOrder RGB_ORDER> class PIXIE : public PixieController<DATA_PIN, RGB_ORDER> {};
+#endif
 
 #ifdef FASTLED_HAS_CLOCKLESS
 template<uint8_t DATA_PIN> class NEOPIXEL : public WS2812Controller800Khz<DATA_PIN, GRB> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class TM1829 : public TM1829Controller800Khz<DATA_PIN, RGB_ORDER> {};
+template<uint8_t DATA_PIN, EOrder RGB_ORDER> class TM1812 : public TM1809Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class TM1809 : public TM1809Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class TM1804 : public TM1809Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class TM1803 : public TM1803Controller400Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class UCS1903 : public UCS1903Controller400Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class UCS1903B : public UCS1903BController800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class UCS1904 : public UCS1904Controller800Khz<DATA_PIN, RGB_ORDER> {};
+template<uint8_t DATA_PIN, EOrder RGB_ORDER> class UCS2903 : public UCS2903Controller<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class WS2812 : public WS2812Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class WS2812B : public WS2812Controller800Khz<DATA_PIN, RGB_ORDER> {};
+template<uint8_t DATA_PIN, EOrder RGB_ORDER> class SK6812 : public SK6812Controller<DATA_PIN, RGB_ORDER> {};
+template<uint8_t DATA_PIN, EOrder RGB_ORDER> class PL9823 : public PL9823Controller<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class WS2811 : public WS2811Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class APA104 : public WS2811Controller800Khz<DATA_PIN, RGB_ORDER> {};
 template<uint8_t DATA_PIN, EOrder RGB_ORDER> class WS2811_400 : public WS2811Controller400Khz<DATA_PIN, RGB_ORDER> {};
@@ -95,18 +109,23 @@ template<EOrder RGB_ORDER> class DMXSERIAL : public DMXSerialController<RGB_ORDE
 enum EBlockChipsets {
 #ifdef PORTA_FIRST_PIN
 	WS2811_PORTA,
+	WS2811_400_PORTA,
 #endif
 #ifdef PORTB_FIRST_PIN
 	WS2811_PORTB,
+	WS2811_400_PORTB,
 #endif
 #ifdef PORTC_FIRST_PIN
 	WS2811_PORTC,
+	WS2811_400_PORTC,
 #endif
 #ifdef PORTD_FIRST_PIN
 	WS2811_PORTD,
+	WS2811_400_PORTD,
 #endif
 #ifdef HAS_PORTDC
 	WS2811_PORTDC,
+	WS2811_400_PORTDC,
 #endif
 };
 
@@ -115,6 +134,8 @@ enum EBlockChipsets {
 #else
 #define NUM_CONTROLLERS 8
 #endif
+
+typedef uint8_t (*power_func)(uint8_t scale, uint32_t data);
 
 /// High level controller interface for FastLED.  This class manages controllers, global settings and trackings
 /// such as brightness, and refresh rates, and provides access functions for driving led data to controllers
@@ -125,6 +146,9 @@ class CFastLED {
 	uint8_t  m_Scale; 				///< The current global brightness scale setting
 	uint16_t m_nFPS;					///< Tracking for current FPS value
 	uint32_t m_nMinMicros;		///< minimum µs between frames, used for capping frame rates.
+	uint32_t m_nPowerData;		///< max power use parameter
+	power_func m_pPowerFunc;	///< function for overriding brightness when using FastLED.show();
+
 public:
 	CFastLED();
 
@@ -299,6 +323,7 @@ public:
 	{
 		switch(CHIPSET) {
 			case OCTOWS2811: { static COctoWS2811Controller<RGB_ORDER> controller; return addLeds(&controller, data, nLedsOrOffset, nLedsIfOffset); }
+			case OCTOWS2811_400: { static COctoWS2811Controller<RGB_ORDER,true> controller; return addLeds(&controller, data, nLedsOrOffset, nLedsIfOffset); }
 		}
 	}
 
@@ -347,18 +372,23 @@ public:
 		switch(CHIPSET) {
 		#ifdef PORTA_FIRST_PIN
 				case WS2811_PORTA: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTA_FIRST_PIN, NS(320), NS(320), NS(640), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+				case WS2811_400_PORTA: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTA_FIRST_PIN, NS(800), NS(800), NS(900), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
 		#endif
 		#ifdef PORTB_FIRST_PIN
 				case WS2811_PORTB: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTB_FIRST_PIN, NS(320), NS(320), NS(640), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+				case WS2811_400_PORTB: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTB_FIRST_PIN, NS(800), NS(800), NS(900), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
 		#endif
 		#ifdef PORTC_FIRST_PIN
 				case WS2811_PORTC: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTC_FIRST_PIN, NS(320), NS(320), NS(640), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+				case WS2811_400_PORTC: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTC_FIRST_PIN, NS(800), NS(800), NS(900), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
 		#endif
 		#ifdef PORTD_FIRST_PIN
 				case WS2811_PORTD: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTD_FIRST_PIN, NS(320), NS(320), NS(640), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+				case WS2811_400_PORTD: return addLeds(new InlineBlockClocklessController<NUM_LANES, PORTD_FIRST_PIN, NS(800), NS(800), NS(900), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
 		#endif
 		#ifdef HAS_PORTDC
 				case WS2811_PORTDC: return addLeds(new SixteenWayInlineBlockClocklessController<16,NS(320), NS(320), NS(640), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
+				case WS2811_400_PORTDC: return addLeds(new SixteenWayInlineBlockClocklessController<16,NS(800), NS(800), NS(900), RGB_ORDER>(), data, nLedsOrOffset, nLedsIfOffset);
 		#endif
 		}
 	}
@@ -378,6 +408,15 @@ public:
 	/// @returns the current global brightness value
 	uint8_t getBrightness() { return m_Scale; }
 
+	/// Set the maximum power to be used, given in volts and milliamps.
+	/// @param volts - how many volts the leds are being driven at (usually 5)
+	/// @param milliamps - the maximum milliamps of power draw you want
+	inline void setMaxPowerInVoltsAndMilliamps(uint8_t volts, uint32_t milliamps) { setMaxPowerInMilliWatts(volts * milliamps); }
+
+	/// Set the maximum power to be used, given in milliwatts
+	/// @param milliwatts - the max power draw desired, in milliwatts
+	inline void setMaxPowerInMilliWatts(uint32_t milliwatts) { m_pPowerFunc = &calculate_max_brightness_for_power_mW; m_nPowerData = milliwatts; }
+
 	/// Update all our controllers with the current led colors, using the passed in brightness
 	/// @param scale temporarily override the scale
 	void show(uint8_t scale);
@@ -385,8 +424,11 @@ public:
 	/// Update all our controllers with the current led colors
 	void show() { show(m_Scale); }
 
+	/// clear the leds, optionally wiping the local array of data as well
+	/// @param writeData whether or not to write into the local data array as well
 	void clear(boolean writeData = false);
 
+	/// clear out the local data array
 	void clearData();
 
 	/// Set all leds on all controllers to the given color/scale
@@ -419,10 +461,13 @@ public:
 	void setDither(uint8_t ditherMode = BINARY_DITHER);
 
 	/// Set the maximum refresh rate.  This is global for all leds.  Attempts to
-	/// call show faster than this rate will simply wait.  Defaults to 400Hz.  Set
-	/// to 0 to have no maximum rate.
+	/// call show faster than this rate will simply wait.  Note that the refresh rate
+	/// defaults to the slowest refresh rate of all the leds added through addLeds.  If
+	/// you wish to set/override this rate, be sure to call setMaxRefreshRate _after_
+	/// adding all of your leds.
 	/// @param refresh - maximum refresh rate in hz
-	void setMaxRefreshRate(uint16_t refresh);
+	/// @param constrain - constrain refresh rate to the slowest speed yet set
+	void setMaxRefreshRate(uint16_t refresh, bool constrain=false);
 
 	/// for debugging, will keep track of time between calls to countFPS, and every
 	/// nFrames calls, it will update an internal counter for the current FPS.
