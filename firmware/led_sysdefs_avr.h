@@ -9,8 +9,8 @@
 
 #define FASTLED_SPI_BYTE_ONLY
 
-#include <avr/io.h>
-#include <avr/interrupt.h> // for cli/se definitions
+//#include <avr/io.h>
+//#include <avr/interrupt.h> // for cli/se definitions
 
 // Define the register types
 #if defined(ARDUINO) // && ARDUINO < 150
