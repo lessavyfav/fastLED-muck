@@ -22,7 +22,7 @@
 #error "XTENSA-architecture microcontrollers are not supported."
 #else
 // AVR platforms
-#include "./platforms/avr/led_sysdefs_avr.h"
+#include "led_sysdefs_avr.h"
 #endif
 
 #ifndef FASTLED_NAMESPACE_BEGIN
